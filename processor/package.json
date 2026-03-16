@@ -1,0 +1,6 @@
+{
+  "name": "processor",
+  "version": "1.0.0",
+  "description": "SQS event processor Lambda function",
+  "main": "index.js"
+}

@@ -1,0 +1,9 @@
+node_modules/
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+terraform/lambda_payload.zip
+terraform/zz_backend_override.tf
+*.zip
+.env
