@@ -48,7 +48,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
 # Package the Lambda function code
 data "archive_file" "processor" {
   type        = "zip"
-  source_dir  = "${path.module}/../functions/processor"
+  source_dir  = "${path.module}/../processor"
   output_path = "${path.module}/lambda_payload.zip"
 }
 
