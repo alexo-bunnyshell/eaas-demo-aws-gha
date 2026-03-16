@@ -1,93 +1,84 @@
 kind: Environment
 name: neo-demos
 type: primary
-
 environmentVariablesGroups:
-  aws:
-    AWS_ACCESS_KEY_ID: SECRET["REPLACE_WITH_YOUR_KEY"]
-    AWS_SECRET_ACCESS_KEY: SECRET["REPLACE_WITH_YOUR_SECRET"]
-    AWS_REGION: eu-west-1
-
+    aws:
+        AWS_ACCESS_KEY_ID: 'ENCRYPTED[jOwOm3eqUste1v2/6i6e8so0PxdKuav36dQ1tzTWkiPXyj7RRVAGREmb0QlTL94Q4pWRNm5jNm1j]'
+        AWS_REGION: eu-west-1
+        AWS_SECRET_ACCESS_KEY: 'ENCRYPTED[IDS3x7lvCBWQzLBZCjzvtvjE46sTJMSpHLf+X6rMFgup/AHtkMgm4IsUgjcfoM0t4fOOCVbx02NUV07oAjwLilzsK7/ilZE2bmM2bWM=]'
 components:
-  # ---------------------------------------------------------------------------
-  # Terraform: Provisions SQS queue, DLQ, Lambda function, and IAM roles.
-  # Exports SQS_QUEUE_URL and LAMBDA_FUNCTION_NAME for downstream components.
-  # ---------------------------------------------------------------------------
-  - kind: Terraform
-    name: aws-infra
-    gitRepo: 'https://github.com/alexo-bunnyshell/eaas-demo-aws-gha.git'
-    gitBranch: main
-    gitApplicationPath: /terraform
-    runnerImage: 'hashicorp/terraform:1.7'
-    deploy:
-      - '/bns/helpers/terraform/get_managed_backend > zz_backend_override.tf'
-      - 'terraform init -input=false -no-color'
-      - 'terraform apply -var "environment_unique={{ env.unique }}" -var "aws_region={{ env.varGroups.aws.AWS_REGION }}" -input=false -auto-approve -no-color'
-      - 'BNS_TF_STATE_LIST=terraform show -json'
-      - 'SQS_QUEUE_URL=terraform output -raw sqs_queue_url'
-      - 'LAMBDA_FUNCTION_NAME=terraform output -raw lambda_function_name'
-      - 'AWS_REGION_OUT=terraform output -raw aws_region'
-    destroy:
-      - '/bns/helpers/terraform/get_managed_backend > zz_backend_override.tf'
-      - 'terraform init -input=false -no-color'
-      - 'terraform destroy -var "environment_unique={{ env.unique }}" -var "aws_region={{ env.varGroups.aws.AWS_REGION }}" -input=false -auto-approve -no-color'
-    exportVariables:
-      - SQS_QUEUE_URL
-      - LAMBDA_FUNCTION_NAME
-      - AWS_REGION_OUT
-    environment:
-      AWS_ACCESS_KEY_ID: '{{ env.varGroups.aws.AWS_ACCESS_KEY_ID }}'
-      AWS_SECRET_ACCESS_KEY: '{{ env.varGroups.aws.AWS_SECRET_ACCESS_KEY }}'
-      AWS_DEFAULT_REGION: '{{ env.varGroups.aws.AWS_REGION }}'
-
-  # ---------------------------------------------------------------------------
-  # API Service: Express.js REST API running on EKS.
-  # Receives messages via POST /messages and sends them to SQS.
-  # ---------------------------------------------------------------------------
-  - kind: Application
-    name: api
-    gitRepo: 'https://github.com/alexo-bunnyshell/eaas-demo-aws-gha.git'
-    gitBranch: main
-    gitApplicationPath: /services/api
-    dependsOn:
-      - aws-infra
-    dockerCompose:
-      build:
-        context: .
-        dockerfile: Dockerfile
-      ports:
-        - '3000:3000'
-      environment:
-        SQS_QUEUE_URL: '{{ components.aws-infra.exported.SQS_QUEUE_URL }}'
-        AWS_REGION: '{{ components.aws-infra.exported.AWS_REGION_OUT }}'
-        AWS_ACCESS_KEY_ID: '{{ env.varGroups.aws.AWS_ACCESS_KEY_ID }}'
-        AWS_SECRET_ACCESS_KEY: '{{ env.varGroups.aws.AWS_SECRET_ACCESS_KEY }}'
-        NODE_ENV: production
-    hosts:
-      - hostname: 'api-{{ env.base_domain }}'
-        path: /
-        servicePort: 3000
-
-  # ---------------------------------------------------------------------------
-  # Worker Service: SQS consumer running on EKS.
-  # Long-polls the SQS queue and processes messages.
-  # ---------------------------------------------------------------------------
-  - kind: Application
-    name: worker
-    gitRepo: 'https://github.com/alexo-bunnyshell/eaas-demo-aws-gha.git'
-    gitBranch: main
-    gitApplicationPath: /services/worker
-    dependsOn:
-      - aws-infra
-    dockerCompose:
-      build:
-        context: .
-        dockerfile: Dockerfile
-      ports:
-        - '3001:3001'
-      environment:
-        SQS_QUEUE_URL: '{{ components.aws-infra.exported.SQS_QUEUE_URL }}'
-        AWS_REGION: '{{ components.aws-infra.exported.AWS_REGION_OUT }}'
-        AWS_ACCESS_KEY_ID: '{{ env.varGroups.aws.AWS_ACCESS_KEY_ID }}'
-        AWS_SECRET_ACCESS_KEY: '{{ env.varGroups.aws.AWS_SECRET_ACCESS_KEY }}'
-        NODE_ENV: production
+    -
+        kind: Terraform
+        name: aws-infra
+        gitRepo: 'https://github.com/alexo-bunnyshell/eaas-demo-aws-gha.git'
+        gitBranch: main
+        gitApplicationPath: /terraform
+        runnerImage: 'hashicorp/terraform:1.7'
+        deploy:
+            - 'cd terraform'
+            - '/bns/helpers/terraform/get_managed_backend > zz_backend_override.tf'
+            - 'terraform init -input=false -no-color'
+            - 'terraform apply -var "environment_unique={{ env.unique }}" -var "aws_region=$AWS_REGION" -input=false -auto-approve -no-color'
+            - 'BNS_TF_STATE_LIST=`terraform show -json`'
+            - 'SQS_QUEUE_URL=`terraform output -raw sqs_queue_url`'
+            - 'LAMBDA_FUNCTION_NAME=`terraform output -raw lambda_function_name`'
+            - 'AWS_REGION_OUT=`terraform output -raw aws_region`'
+        destroy:
+            - 'cd terraform'
+            - '/bns/helpers/terraform/get_managed_backend > zz_backend_override.tf'
+            - 'terraform init -input=false -no-color'
+            - 'terraform destroy -var "environment_unique={{ env.unique }}" -var "aws_region=$AWS_REGION" -input=false -auto-approve -no-color'
+        exportVariables:
+            - SQS_QUEUE_URL
+            - LAMBDA_FUNCTION_NAME
+            - AWS_REGION_OUT
+        environment:
+            AWS_ACCESS_KEY_ID: '{{ env.varGroups.aws.AWS_ACCESS_KEY_ID }}'
+            AWS_DEFAULT_REGION: eu-west-1
+            AWS_REGION: eu-west-1
+            AWS_SECRET_ACCESS_KEY: '{{ env.varGroups.aws.AWS_SECRET_ACCESS_KEY }}'
+    -
+        kind: Application
+        name: api
+        gitRepo: 'https://github.com/alexo-bunnyshell/eaas-demo-aws-gha.git'
+        gitBranch: main
+        gitApplicationPath: /services/api
+        dockerCompose:
+            build:
+                context: ./services/api
+                dockerfile: Dockerfile
+            ports:
+                - '3000:3000'
+            environment:
+                AWS_ACCESS_KEY_ID: '{{ env.varGroups.aws.AWS_ACCESS_KEY_ID }}'
+                AWS_REGION: '{{ components.aws-infra.exported.AWS_REGION_OUT }}'
+                AWS_SECRET_ACCESS_KEY: '{{ env.varGroups.aws.AWS_SECRET_ACCESS_KEY }}'
+                NODE_ENV: production
+                SQS_QUEUE_URL: '{{ components.aws-infra.exported.SQS_QUEUE_URL }}'
+        hosts:
+            -
+                hostname: 'api-{{ env.base_domain }}'
+                path: /
+                servicePort: 3000
+        dependsOn:
+            - aws-infra
+    -
+        kind: Application
+        name: worker
+        gitRepo: 'https://github.com/alexo-bunnyshell/eaas-demo-aws-gha.git'
+        gitBranch: main
+        gitApplicationPath: /services/worker
+        dockerCompose:
+            build:
+                context: ./services/worker
+                dockerfile: Dockerfile
+            ports:
+                - '3001:3001'
+            environment:
+                AWS_ACCESS_KEY_ID: '{{ env.varGroups.aws.AWS_ACCESS_KEY_ID }}'
+                AWS_REGION: '{{ components.aws-infra.exported.AWS_REGION_OUT }}'
+                AWS_SECRET_ACCESS_KEY: '{{ env.varGroups.aws.AWS_SECRET_ACCESS_KEY }}'
+                NODE_ENV: production
+                SQS_QUEUE_URL: '{{ components.aws-infra.exported.SQS_QUEUE_URL }}'
+        dependsOn:
+            - aws-infra
