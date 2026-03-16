@@ -31,6 +31,14 @@ app.post("/messages", async (req, res) => {
     body,
     source: "api",
     timestamp: new Date().toISOString(),
+    request: {
+      ip: req.ip,
+      userAgent: req.get("user-agent"),
+      contentType: req.get("content-type"),
+      host: req.get("host"),
+      method: req.method,
+      path: req.originalUrl,
+    },
   };
 
   const command = new SendMessageCommand({
